@@ -1,4 +1,15 @@
 # BEGIN NFD EPC
+<IfModule mod_rewrite.c>
+	RewriteEngine On
+	RewriteBase /legaldivorcedocs/
+	RewriteRule ^legaldivorcedocs/wp-content/endurance-page-cache/ - [L]
+	RewriteCond %{REQUEST_METHOD} !POST
+	RewriteCond %{QUERY_STRING} !.*=.*
+	RewriteCond %{HTTP_COOKIE} !(wordpress_test_cookie|comment_author|wp\-postpass|wordpress_logged_in|wptouch_switch_toggle|wp_woocommerce_session_) [NC]
+	RewriteCond %{DOCUMENT_ROOT}/legaldivorcedocs/wp-content/endurance-page-cache/$1/_index.html -f
+	RewriteRule ^(.*)$ /legaldivorcedocs/wp-content/endurance-page-cache/$1/_index.html [L]
+</IfModule>
+
 <IfModule mod_expires.c>
 	ExpiresActive On
 	ExpiresByType image/jpg "access plus 1 year"
@@ -13,84 +24,18 @@
 	ExpiresDefault "access plus 6 hours"
 </IfModule>
 # END NFD EPC
-
 # BEGIN WordPress
+# The directives (lines) between "BEGIN WordPress" and "END WordPress" are
+# dynamically generated, and should only be modified via WordPress filters.
+# Any changes to the directives between these markers will be overwritten.
 <IfModule mod_rewrite.c>
 RewriteEngine On
 RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-RewriteBase /
+RewriteBase /legaldivorcedocs/
 RewriteRule ^index\.php$ - [L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . /index.php [L]
+RewriteRule . /legaldivorcedocs/index.php [L]
 </IfModule>
+
 # END WordPress
-# BEGIN NFD Htaccess
-# Managed by Newfold Htaccess Manager v1.0.0 (ofa.bwy.mybluehost.me)
-# STATE sha256: 2037d30eec1ce2978ab69f1a8336927d9c93dd7a510a698b698ed5ef604efcfd applied: 2026-02-07T00:37:09Z
-
-# BEGIN Newfold Browser Cache
-<IfModule mod_expires.c>
-	ExpiresActive On
-	ExpiresDefault "access plus 24 hours"
-	ExpiresByType text/html "access plus 2 hours"
-	ExpiresByType image/jpg "access plus 24 hours"
-	ExpiresByType image/jpeg "access plus 24 hours"
-	ExpiresByType image/gif "access plus 24 hours"
-	ExpiresByType image/png "access plus 24 hours"
-	ExpiresByType image/webp "access plus 24 hours"
-	ExpiresByType text/css "access plus 24 hours"
-	ExpiresByType text/javascript "access plus 24 hours"
-	ExpiresByType application/pdf "access plus 1 week"
-	ExpiresByType image/x-icon "access plus 1 year"
-</IfModule>
-# END Newfold Browser Cache
-
-# BEGIN Newfold CF Optimization Header
-<IfModule mod_rewrite.c>
-	RewriteEngine On
-	# Skip setting for admin/API routes
-	RewriteCond %{REQUEST_URI} !/wp-admin/       [NC]
-	RewriteCond %{REQUEST_URI} !/wp-login\.php   [NC]
-	RewriteCond %{REQUEST_URI} !/wp-json/        [NC]
-	RewriteCond %{REQUEST_URI} !/xmlrpc\.php     [NC]
-	RewriteCond %{REQUEST_URI} !/admin-ajax\.php [NC]
-	# Skip if the exact cookie and value are already present
-	RewriteCond %{HTTP_COOKIE} !(^|;\s*)nfd\-enable\-cf\-opt\=63a6825d27cab0f204d3b602 [NC]
-	# Set env var if we passed all conditions
-	RewriteRule .* - [E=CF_OPT:1]
-</IfModule>
-<IfModule mod_headers.c>
-	# Set cookie only if env var is present (i.e., exact cookie not found)
-	Header set Set-Cookie "nfd-enable-cf-opt=63a6825d27cab0f204d3b602; path=/; Max-Age=86400; HttpOnly" env=CF_OPT
-</IfModule>
-# END Newfold CF Optimization Header
-
-# BEGIN Newfold WebP Existing Image Redirect
-<IfModule mod_rewrite.c>
-	RewriteEngine On
-	RewriteCond %{REQUEST_FILENAME} -f
-	RewriteCond %{REQUEST_URI} (.+)\.(gif|bmp|jpg|jpeg|png|tiff|svg|webp)$ [NC]
-	RewriteCond %{DOCUMENT_ROOT}%1.webp -f
-	RewriteRule ^(.+)\.(gif|bmp|jpg|jpeg|png|tiff|svg|webp)$ $1.webp [T=image/webp,E=WEBP_REDIRECT:1,L]
-</IfModule>
-# END Newfold WebP Existing Image Redirect
-
-# BEGIN Newfold Skip 404 Handling for Static Files
-<IfModule mod_rewrite.c>
-	RewriteEngine On
-	RewriteCond %{REQUEST_FILENAME} !-f
-	RewriteCond %{REQUEST_FILENAME} !-d
-	RewriteCond %{REQUEST_URI} !(robots\.txt|ads\.txt|[a-z0-9_\-]*sitemap[a-z0-9_\.\-]*\.(xml|xsl|html)(\.gz)?)
-	RewriteCond %{REQUEST_URI} \.(css|htc|less|js|js2|js3|js4|html|htm|rtf|rtx|txt|xsd|xsl|xml|asf|asx|wax|wmv|wmx|avi|avif|avifs|bmp|class|divx|doc|docx|eot|exe|gif|gz|gzip|ico|jpg|jpeg|jpe|webp|json|mdb|mid|midi|mov|qt|mp3|m4a|mp4|m4v|mpeg|mpg|mpe|webm|mpp|otf|_otf|odb|odc|odf|odg|odp|ods|odt|ogg|ogv|pdf|png|pot|pps|ppt|pptx|ra|ram|svg|svgz|swf|tar|tif|tiff|ttf|ttc|_ttf|wav|wma|wri|woff|woff2|xla|xls|xlsx|xlt|xlw|zip)$ [NC]
-	RewriteRule .* - [L]
-</IfModule>
-# END Newfold Skip 404 Handling for Static Files
-# END NFD Htaccess
-
-# php -- BEGIN cPanel-generated handler, do not edit
-# Set the “ea-php83” package as the default “PHP” programming language.
-<IfModule mime_module>
-  AddHandler application/x-httpd-ea-php83___lsphp .php .php8 .phtml
-</IfModule>
-# php -- END cPanel-generated handler, do not edit
