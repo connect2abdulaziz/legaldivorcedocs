@@ -1,0 +1,4 @@
+[06-Feb-2026 23:21:40 UTC] MonsterInsights: Running migration 1.0.0-cache-table: Create custom cache table for improved performance
+[06-Feb-2026 23:21:40 UTC] MonsterInsights: Migration 1.0.0-cache-table completed successfully in 0.02 seconds
+[06-Feb-2026 23:21:40 UTC] MonsterInsights: Running migration 1.0.1-remove-per-user-cache: Remove per-user cache metadata (switched to site-wide cache)
+[06-Feb-2026 23:21:40 UTC] MonsterInsights: Migration 1.0.1-remove-per-user-cache completed successfully in 0.00 seconds

@@ -1,0 +1,23 @@
+# WordPress core
+/wp-admin/
+/wp-includes/
+/*.php
+!wp-config-sample.php
+
+# Uploads & cache
+/wp-content/uploads/
+/wp-content/cache/
+/wp-content/upgrade/
+
+# Third-party plugins (optional - some devs version these)
+/wp-content/plugins/*/
+!/wp-content/plugins/case-engine/
+
+# Secrets
+wp-config.php
+.env
+
+# System files
+.DS_Store
+Thumbs.db
+*.log
