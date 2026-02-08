@@ -6,6 +6,30 @@ Access is controlled by **roles** and **capabilities**. We define custom capabil
 
 ---
 
+## Status: What’s Done vs What’s Needed
+
+### Done
+
+| Area | Implementation |
+|------|-----------------|
+| **Roles & capabilities** | Administrator, Case Manager, Client; all caps defined and assigned on activation. |
+| **Admin menu** | Shown only to users with `case_engine_view_sessions` (Admin, Case Manager). |
+| **Admin page load** | `current_user_can( VIEW_SESSIONS )` — 403 if no permission. |
+| **Create case from session** | Link and action require `case_engine_create_case_from_session`; session list shows “Create case” only with that cap. |
+| **Client dashboard** | Requires `case_engine_view_own_cases`. Guests see “Log in”; no cap = “You do not have permission”. |
+| **Client: own cases only** | `get_own_cases()` and `get_case_for_user()` restrict by `session.user_id = current user`. Clients never see other users’ cases. |
+| **Intake** | No role check (anonymous); session tied to `user_id` on save/restore; restore/save/payment/complete enforce session belongs to current user. |
+
+### Needed (and implemented below)
+
+| Area | Requirement |
+|------|-------------|
+| **Admin: view all cases** | List all cases (Admin/Case Manager) with `case_engine_view_cases`; separate from client “own” view. |
+| **Admin: manage cases** | View case detail and edit case status/details with `case_engine_edit_cases`. |
+| **Permission checks everywhere** | Every admin case view and action must check the appropriate cap (VIEW_CASES, EDIT_CASES). |
+
+---
+
 ## 1. Roles
 
 | Role | Who | Purpose |
@@ -43,8 +67,8 @@ All Case Engine capabilities use the prefix `case_engine_` so they are clearly s
 | **Admin menu** | `case_engine_view_sessions` | Show "Case Engine" only to users who can at least view sessions. |
 | **Admin page (load)** | `case_engine_view_sessions` | If user has no cap, show "You don’t have permission" and exit. |
 | **Create case from session** | `case_engine_create_case_from_session` | Before creating case from session (link or GET param), require this cap. |
-| **Future: Cases list** | `case_engine_view_cases` | Show cases list only if user can view cases. |
-| **Future: Edit case** | `case_engine_edit_cases` | Allow saving case edits only with this cap. |
+| **Admin: All cases list** | `case_engine_view_cases` | Show "All cases" table only to Admin/Case Manager. |
+| **Admin: View/Manage case** | `case_engine_view_cases` / `case_engine_edit_cases` | View case detail; edit status (form) only with `edit_cases`. |
 | **Client dashboard (front-end)** | `case_engine_view_own_cases` | Allow access to dashboard; list only cases where `user_id` = current user (or by session/email for guests). |
 | **Intake (AJAX save/payment)** | No role check | Intake is anonymous (session + nonce). No login required. |
 | **REST API (if added later)** | Per-endpoint cap | e.g. list cases → `case_engine_view_cases` or `case_engine_view_own_cases`. |

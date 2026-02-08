@@ -211,8 +211,9 @@ class Case_Engine_Intake_Flow {
 		ob_start();
 		?>
 		<div id="az-intake" class="az-intake" data-current="1">
-			<div class="az-intake-progress" aria-hidden="true"><span class="az-intake-progress-text">Step <span class="az-intake-step-current">1</span> of <?php echo (int) self::TOTAL_SCREENS; ?></span><div class="az-intake-progress-bar"><span class="az-intake-progress-fill" style="width:<?php echo round( 100 / self::TOTAL_SCREENS ); ?>%"></span></div></div>
-			<?php foreach ( $screens as $num => $screen ) : ?>
+			<div class="az-intake-card">
+				<div class="az-intake-progress" aria-hidden="true"><span class="az-intake-progress-text">Step <span class="az-intake-step-current">1</span> of <?php echo (int) self::TOTAL_SCREENS; ?></span><div class="az-intake-progress-bar"><span class="az-intake-progress-fill" style="width:<?php echo round( 100 / self::TOTAL_SCREENS ); ?>%"></span></div></div>
+				<?php foreach ( $screens as $num => $screen ) : ?>
 				<div class="az-intake-screen" data-screen="<?php echo (int) $num; ?>" id="az-intake-screen-<?php echo (int) $num; ?>" role="region" aria-labelledby="az-intake-title-<?php echo (int) $num; ?>">
 					<p class="az-intake-step-badge">Step <?php echo (int) $num; ?> of <?php echo (int) self::TOTAL_SCREENS; ?></p>
 					<h2 id="az-intake-title-<?php echo (int) $num; ?>" class="az-intake-screen-title"><?php echo esc_html( $screen['title'] ); ?></h2>
@@ -227,7 +228,8 @@ class Case_Engine_Intake_Flow {
 					</div>
 					<div class="az-intake-stop-message" role="alert" aria-live="polite" hidden></div>
 				</div>
-			<?php endforeach; ?>
+				<?php endforeach; ?>
+			</div>
 		</div>
 		<?php
 		return ob_get_clean();
@@ -256,19 +258,21 @@ class Case_Engine_Intake_Flow {
 				break;
 			case 'case_info':
 				?>
-				<p><label><?php esc_html_e( 'County', 'case-engine' ); ?> <input type="text" name="county" value="<?php echo esc_attr( $screen['county_default'] ?? '' ); ?>" /></label></p>
-				<p><label><?php esc_html_e( 'Are there minor children?', 'case-engine' ); ?>
-					<select name="has_children">
-						<option value="no"><?php esc_html_e( 'No', 'case-engine' ); ?></option>
-						<option value="yes"><?php esc_html_e( 'Yes', 'case-engine' ); ?></option>
-					</select></label></p>
-				<p><label><?php esc_html_e( 'Approximate filing date (optional)', 'case-engine' ); ?> <input type="date" name="filing_date" /></label></p>
-				<p><label><?php esc_html_e( 'Your role', 'case-engine' ); ?>
-					<select name="role">
-						<?php foreach ( ( $screen['role_options'] ?? array() ) as $val => $lbl ) : ?>
-							<option value="<?php echo esc_attr( $val ); ?>"><?php echo esc_html( $lbl ); ?></option>
-						<?php endforeach; ?>
-					</select></label></p>
+				<div class="az-intake-form-fields">
+					<div class="az-intake-form-group"><label><span class="az-intake-label-text"><?php esc_html_e( 'County', 'case-engine' ); ?></span> <input type="text" name="county" value="<?php echo esc_attr( $screen['county_default'] ?? '' ); ?>" /></label></div>
+					<div class="az-intake-form-group"><label><span class="az-intake-label-text"><?php esc_html_e( 'Are there minor children?', 'case-engine' ); ?></span>
+						<select name="has_children">
+							<option value="no"><?php esc_html_e( 'No', 'case-engine' ); ?></option>
+							<option value="yes"><?php esc_html_e( 'Yes', 'case-engine' ); ?></option>
+						</select></label></div>
+					<div class="az-intake-form-group"><label><span class="az-intake-label-text"><?php esc_html_e( 'Approximate filing date (optional)', 'case-engine' ); ?></span> <input type="date" name="filing_date" /></label></div>
+					<div class="az-intake-form-group"><label><span class="az-intake-label-text"><?php esc_html_e( 'Your role', 'case-engine' ); ?></span>
+						<select name="role">
+							<?php foreach ( ( $screen['role_options'] ?? array() ) as $val => $lbl ) : ?>
+								<option value="<?php echo esc_attr( $val ); ?>"><?php echo esc_html( $lbl ); ?></option>
+							<?php endforeach; ?>
+						</select></label></div>
+				</div>
 				<?php
 				break;
 			case 'issue_checks':
@@ -297,11 +301,13 @@ class Case_Engine_Intake_Flow {
 					'dob'       => __( 'Date of birth', 'case-engine' ),
 				);
 				$prefix = $screen['party'] . '_';
+				echo '<div class="az-intake-form-fields">';
 				foreach ( $screen['fields'] as $f ) {
 					$name = $prefix . $f;
 					$input_type = ( $f === 'email' ) ? 'email' : ( ( $f === 'dob' ) ? 'date' : 'text' );
-					echo '<p><label>' . esc_html( $labels[ $f ] ?? $f ) . ' <input type="' . esc_attr( $input_type ) . '" name="' . esc_attr( $name ) . '" /></label></p>';
+					echo '<div class="az-intake-form-group"><label><span class="az-intake-label-text">' . esc_html( $labels[ $f ] ?? $f ) . '</span> <input type="' . esc_attr( $input_type ) . '" name="' . esc_attr( $name ) . '" /></label></div>';
 				}
+				echo '</div>';
 				if ( ! empty( $screen['help'] ) ) {
 					echo '<p class="az-intake-help">' . esc_html( $screen['help'] ) . '</p>';
 				}
@@ -311,9 +317,9 @@ class Case_Engine_Intake_Flow {
 				<p class="az-intake-help"><?php esc_html_e( 'Add each minor child. No custody decisions are asked here.', 'case-engine' ); ?></p>
 				<div class="az-intake-children-list" data-screen="<?php echo (int) $num; ?>">
 					<div class="az-intake-child-row">
-						<p><label><?php esc_html_e( 'Full name', 'case-engine' ); ?> <input type="text" name="children[0][full_name]" /></label></p>
-						<p><label><?php esc_html_e( 'Date of birth', 'case-engine' ); ?> <input type="date" name="children[0][dob]" /></label></p>
-						<p><label><?php esc_html_e( 'Relationship', 'case-engine' ); ?> <input type="text" name="children[0][relationship]" placeholder="<?php esc_attr_e( 'e.g. Son, Daughter', 'case-engine' ); ?>" /></label></p>
+						<div class="az-intake-form-group"><label><span class="az-intake-label-text"><?php esc_html_e( 'Full name', 'case-engine' ); ?></span> <input type="text" name="children[0][full_name]" /></label></div>
+						<div class="az-intake-form-group"><label><span class="az-intake-label-text"><?php esc_html_e( 'Date of birth', 'case-engine' ); ?></span> <input type="date" name="children[0][dob]" /></label></div>
+						<div class="az-intake-form-group"><label><span class="az-intake-label-text"><?php esc_html_e( 'Relationship', 'case-engine' ); ?></span> <input type="text" name="children[0][relationship]" placeholder="<?php esc_attr_e( 'e.g. Son, Daughter', 'case-engine' ); ?>" /></label></div>
 					</div>
 				</div>
 				<p><button type="button" class="az-intake-btn az-intake-add-child"><?php esc_html_e( 'Add another child', 'case-engine' ); ?></button></p>

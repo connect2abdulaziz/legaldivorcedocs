@@ -15,10 +15,14 @@ class Case_Engine_Intake_Handler {
 	public static function register() {
 		add_action( 'wp_ajax_az_intake_save', array( __CLASS__, 'ajax_save' ) );
 		add_action( 'wp_ajax_nopriv_az_intake_save', array( __CLASS__, 'ajax_save' ) );
+		add_action( 'wp_ajax_az_intake_restore', array( __CLASS__, 'ajax_restore' ) );
+		add_action( 'wp_ajax_nopriv_az_intake_restore', array( __CLASS__, 'ajax_restore' ) );
 		add_action( 'wp_ajax_az_intake_gate', array( __CLASS__, 'ajax_gate' ) );
 		add_action( 'wp_ajax_nopriv_az_intake_gate', array( __CLASS__, 'ajax_gate' ) );
 		add_action( 'wp_ajax_az_intake_payment', array( __CLASS__, 'ajax_payment' ) );
 		add_action( 'wp_ajax_nopriv_az_intake_payment', array( __CLASS__, 'ajax_payment' ) );
+		add_action( 'wp_ajax_az_intake_complete', array( __CLASS__, 'ajax_complete' ) );
+		add_action( 'wp_ajax_nopriv_az_intake_complete', array( __CLASS__, 'ajax_complete' ) );
 	}
 
 	/**
@@ -116,6 +120,12 @@ class Case_Engine_Intake_Handler {
 		$answers = self::sanitize_answers_deep( $answers_raw );
 
 		$existing = self::get_session( $session_key );
+		// Privacy: if session belongs to a different user, start a new session for current user (do not use or overwrite their data).
+		$current_user_id = get_current_user_id();
+		if ( $existing && (int) $existing['user_id'] !== $current_user_id ) {
+			$session_key = wp_generate_password( 32, false );
+			$existing = null;
+		}
 		$existing_answers = array();
 		if ( $existing && ! empty( $existing['answers'] ) ) {
 			$existing_answers = json_decode( $existing['answers'], true );
@@ -166,6 +176,63 @@ class Case_Engine_Intake_Handler {
 	}
 
 	/**
+	 * AJAX: restore session on page load (current screen + answers) so reload keeps progress.
+	 */
+	public static function ajax_restore() {
+		check_ajax_referer( 'az_intake', 'nonce' );
+		$session_key = isset( $_POST['session_key'] ) ? sanitize_text_field( wp_unslash( $_POST['session_key'] ) ) : '';
+		if ( ! $session_key || ! preg_match( '/^[a-zA-Z0-9]{32}$/', $session_key ) ) {
+			wp_send_json_success( array( 'restored' => false ) );
+		}
+		$session = self::get_session( $session_key );
+		$terminal_statuses = array( 'stopped', 'completed' );
+		if ( ! $session || ( isset( $session['status'] ) && in_array( $session['status'], $terminal_statuses, true ) ) ) {
+			wp_send_json_success( array( 'restored' => false ) );
+		}
+		// Privacy: only restore if session belongs to the current user (same user_id).
+		$session_user_id = isset( $session['user_id'] ) ? (int) $session['user_id'] : 0;
+		$current_user_id = get_current_user_id();
+		if ( $session_user_id !== $current_user_id ) {
+			wp_send_json_success( array( 'restored' => false, 'clear_cookie' => true ) );
+		}
+		$current_screen = isset( $session['current_screen'] ) ? (int) $session['current_screen'] : 1;
+		$answers = array();
+		if ( ! empty( $session['answers'] ) ) {
+			$decoded = json_decode( $session['answers'], true );
+			if ( is_array( $decoded ) ) {
+				$answers = $decoded;
+			}
+		}
+		wp_send_json_success( array(
+			'restored'       => true,
+			'current_screen' => max( 1, min( $current_screen, 12 ) ),
+			'answers'        => $answers,
+			'session_key'    => $session_key,
+		) );
+	}
+
+	/**
+	 * AJAX: mark intake session as completed when user clicks "Go to Dashboard" on screen 12.
+	 * So next visit to intake starts a new session (restore returns false).
+	 */
+	public static function ajax_complete() {
+		check_ajax_referer( 'az_intake', 'nonce' );
+		$session_key = isset( $_POST['session_key'] ) ? sanitize_text_field( wp_unslash( $_POST['session_key'] ) ) : '';
+		if ( ! $session_key || ! preg_match( '/^[a-zA-Z0-9]{32}$/', $session_key ) ) {
+			wp_send_json_success( array( 'done' => true ) );
+		}
+		$session = self::get_session( $session_key );
+		if ( $session && (int) $session['user_id'] === get_current_user_id() ) {
+			self::save_session( $session_key, array(
+				'answers'        => ! empty( $session['answers'] ) ? json_decode( $session['answers'], true ) : array(),
+				'status'         => 'completed',
+				'current_screen' => isset( $session['current_screen'] ) ? (int) $session['current_screen'] : 12,
+			) );
+		}
+		wp_send_json_success( array( 'done' => true ) );
+	}
+
+	/**
 	 * AJAX: evaluate gate for current screen (client can call before attempting next).
 	 */
 	public static function ajax_gate() {
@@ -193,6 +260,9 @@ class Case_Engine_Intake_Handler {
 		$session = self::get_session( $session_key );
 		if ( ! $session ) {
 			wp_send_json_error( array( 'message' => __( 'Session not found.', 'case-engine' ) ) );
+		}
+		if ( (int) $session['user_id'] !== get_current_user_id() ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid session.', 'case-engine' ) ) );
 		}
 
 		$case_id = ! empty( $session['case_id'] ) ? (int) $session['case_id'] : 0;

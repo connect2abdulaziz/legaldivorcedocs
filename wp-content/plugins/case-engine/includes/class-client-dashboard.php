@@ -205,9 +205,10 @@ class Case_Engine_Client_Dashboard {
 		$row = $wpdb->get_row( $wpdb->prepare(
 			"SELECT c.id, c.status, c.county, c.filing_date, c.role, c.has_children, c.created_at
 			 FROM {$cases_table} c
-			 INNER JOIN {$sessions_table} s ON c.intake_session_id = s.id
-			 WHERE c.id = %d AND s.user_id = %d",
+			 LEFT JOIN {$sessions_table} s ON c.intake_session_id = s.id
+			 WHERE c.id = %d AND (c.user_id = %d OR s.user_id = %d)",
 			$case_id,
+			$user_id,
 			$user_id
 		), ARRAY_A );
 		return $row ?: null;
@@ -255,9 +256,10 @@ class Case_Engine_Client_Dashboard {
 		return $wpdb->get_results( $wpdb->prepare(
 			"SELECT c.id, c.status, c.county, c.created_at
 			 FROM {$cases_table} c
-			 INNER JOIN {$sessions_table} s ON c.intake_session_id = s.id
-			 WHERE s.user_id = %d
+			 LEFT JOIN {$sessions_table} s ON c.intake_session_id = s.id
+			 WHERE c.user_id = %d OR s.user_id = %d
 			 ORDER BY c.created_at DESC",
+			$user_id,
 			$user_id
 		), ARRAY_A );
 	}

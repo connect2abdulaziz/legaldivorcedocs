@@ -5,21 +5,16 @@
 	if (!$container.length) return;
 
 	var total = window.caseEngineIntake && window.caseEngineIntake.total ? parseInt(window.caseEngineIntake.total, 10) : 12;
-	// Start with no session so each full page load = new session (reload and complete again = new case, not update).
-	clearSessionCookieOnLoad();
+	// Keep session cookie so reload restores progress (screen + answers).
 	var sessionKey = getSessionKey();
 
 	function getSessionKey() {
-		var match = document.cookie.match(/az_intake_session=([a-z0-9]{32})/);
+		var match = document.cookie.match(/az_intake_session=([a-zA-Z0-9]{32})/);
 		return match ? match[1] : '';
 	}
 
 	function setSessionKey(key) {
 		document.cookie = 'az_intake_session=' + key + '; path=/; max-age=86400*7; SameSite=Lax';
-	}
-
-	function clearSessionCookieOnLoad() {
-		document.cookie = 'az_intake_session=; path=/; max-age=0; SameSite=Lax';
 	}
 
 	function getCurrentScreen() {
@@ -90,6 +85,58 @@
 		$screen.find('.az-intake-btn-next').prop('disabled', false);
 	}
 
+	// Populate all form fields from saved answers (used after restore on page load).
+	function restoreFormState(answers) {
+		if (!answers || typeof answers !== 'object') return;
+		var children = answers.children;
+		if (children && typeof children === 'object') {
+			var indices = Object.keys(children).filter(function (k) { return /^\d+$/.test(k); }).map(Number).sort(function (a, b) { return a - b; });
+			indices.forEach(function (i) {
+				var row = children[i];
+				if (!row || typeof row !== 'object') return;
+				if (i > 0) {
+					var $list = $('.az-intake-children-list');
+					var n = $list.find('.az-intake-child-row').length;
+					var html = '<div class="az-intake-child-row">' +
+						'<div class="az-intake-form-group"><label><span class="az-intake-label-text">Full name</span> <input type="text" name="children[' + n + '][full_name]" /></label></div>' +
+						'<div class="az-intake-form-group"><label><span class="az-intake-label-text">Date of birth</span> <input type="date" name="children[' + n + '][dob]" /></label></div>' +
+						'<div class="az-intake-form-group"><label><span class="az-intake-label-text">Relationship</span> <input type="text" name="children[' + n + '][relationship]" placeholder="e.g. Son, Daughter" /></label></div>' +
+						'</div>';
+					$list.append(html);
+				}
+				$container.find('input[name="children[' + i + '][full_name]"]').val(row.full_name || '');
+				$container.find('input[name="children[' + i + '][dob]"]').val(row.dob || '');
+				$container.find('input[name="children[' + i + '][relationship]"]').val(row.relationship || '');
+			});
+		}
+		Object.keys(answers).forEach(function (key) {
+			if (key === 'children') return;
+			var val = answers[key];
+			var $el = $container.find('[name="' + key + '"]').first();
+			if (!$el.length) return;
+			var tag = $el.prop('tagName');
+			var type = ($el.attr('type') || '').toLowerCase();
+			if (type === 'radio') {
+				$container.find('[name="' + key + '"][value="' + (val || '').replace(/"/g, '\\"') + '"]').prop('checked', true);
+			} else if (type === 'checkbox') {
+				$el.prop('checked', val === '1' || val === 'yes' || val === true);
+			} else {
+				$el.val(val || '');
+			}
+		});
+	}
+
+	// When user changes their answer on a gate screen (e.g. agreement_check), clear stop message and re-enable Continue
+	$container.on('change', 'input.az-intake-radio, input.az-intake-checkbox', function () {
+		var current = getCurrentScreen();
+		var $screen = $('#az-intake-screen-' + current);
+		var $msg = $screen.find('.az-intake-stop-message');
+		if ($msg.length && $msg.attr('hidden') !== 'hidden') {
+			$msg.attr('hidden', true).text('');
+			$screen.find('.az-intake-btn-next').prop('disabled', false);
+		}
+	});
+
 	// Toggle children-agreement block when "has_children" = yes (screen 4)
 	function bindHasChildren() {
 		$container.on('change', 'select[name="has_children"]', function () {
@@ -109,9 +156,9 @@
 		var $list = $('.az-intake-children-list');
 		var n = $list.find('.az-intake-child-row').length;
 		var html = '<div class="az-intake-child-row">' +
-			'<p><label>Full name <input type="text" name="children[' + n + '][full_name]" /></label></p>' +
-			'<p><label>Date of birth <input type="date" name="children[' + n + '][dob]" /></label></p>' +
-			'<p><label>Relationship <input type="text" name="children[' + n + '][relationship]" placeholder="e.g. Son, Daughter" /></label></p>' +
+			'<div class="az-intake-form-group"><label><span class="az-intake-label-text">Full name</span> <input type="text" name="children[' + n + '][full_name]" /></label></div>' +
+			'<div class="az-intake-form-group"><label><span class="az-intake-label-text">Date of birth</span> <input type="date" name="children[' + n + '][dob]" /></label></div>' +
+			'<div class="az-intake-form-group"><label><span class="az-intake-label-text">Relationship</span> <input type="text" name="children[' + n + '][relationship]" placeholder="e.g. Son, Daughter" /></label></div>' +
 			'</div>';
 		$list.append(html);
 	});
@@ -169,6 +216,21 @@
 		}
 	});
 
+	// Screen 12: "Go to Dashboard" — mark session completed and clear cookie so next visit starts fresh
+	$container.on('click', '#az-intake-screen-12 a[href*="client-dashboard"]', function (e) {
+		e.preventDefault();
+		var href = $(this).attr('href');
+		if (sessionKey) {
+			$.post(window.caseEngineIntake && window.caseEngineIntake.ajaxUrl, {
+				action: 'az_intake_complete',
+				nonce: window.caseEngineIntake && window.caseEngineIntake.nonce,
+				session_key: sessionKey
+			});
+		}
+		document.cookie = 'az_intake_session=; path=/; max-age=0; SameSite=Lax';
+		window.location.href = href;
+	});
+
 	// Payment button (screen 11): placeholder — in production would redirect to Stripe Checkout
 	$container.on('click', '.az-intake-btn-payment', function () {
 		$.ajax({
@@ -181,6 +243,14 @@
 			},
 			success: function (res) {
 				if (res.success && res.data && res.data.redirect) {
+					if (sessionKey) {
+						$.post(window.caseEngineIntake && window.caseEngineIntake.ajaxUrl, {
+							action: 'az_intake_complete',
+							nonce: window.caseEngineIntake && window.caseEngineIntake.nonce,
+							session_key: sessionKey
+						});
+					}
+					document.cookie = 'az_intake_session=; path=/; max-age=0; SameSite=Lax';
 					setCurrentScreen(12);
 					window.location.href = res.data.redirect;
 				}
@@ -188,7 +258,36 @@
 		});
 	});
 
-	// Init: show only screen 1
+	// Init: show screen 1, then restore session if cookie exists (so reload keeps progress)
 	setCurrentScreen(1);
 	bindHasChildren();
+	if (sessionKey) {
+		$.ajax({
+			url: window.caseEngineIntake && window.caseEngineIntake.ajaxUrl,
+			type: 'POST',
+			data: {
+				action: 'az_intake_restore',
+				nonce: window.caseEngineIntake && window.caseEngineIntake.nonce,
+				session_key: sessionKey
+			},
+			success: function (res) {
+				if (res.success && res.data) {
+					if (res.data.clear_cookie) {
+						document.cookie = 'az_intake_session=; path=/; max-age=0; SameSite=Lax';
+						sessionKey = '';
+					}
+					if (res.data.restored) {
+						restoreFormState(res.data.answers);
+						var screen = parseInt(res.data.current_screen, 10) || 1;
+						setCurrentScreen(screen);
+						if (res.data.session_key) {
+							sessionKey = res.data.session_key;
+							setSessionKey(sessionKey);
+						}
+						$('.az-intake-children-agreement').toggle($container.find('select[name="has_children"]').val() === 'yes');
+					}
+				}
+			}
+		});
+	}
 })(jQuery);
