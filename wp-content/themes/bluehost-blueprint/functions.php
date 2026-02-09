@@ -48,6 +48,32 @@ add_filter( 'render_block', function ( $block_content, $block ) {
 }, 10, 2 );
 
 /**
+ * Fix "Start your divorce" link to always use current site URL.
+ * Content/nav may be stored with absolute URLs (e.g. legaldivorcedocs.local or localhost/legaldivorcedocs);
+ * this ensures the link works on whatever domain/path the site is running on.
+ */
+function bluehost_blueprint_fix_start_divorce_url( $content ) {
+	if ( empty( $content ) || strpos( $content, 'start-your-divorce' ) === false ) {
+		return $content;
+	}
+	$correct_url = home_url( '/start-your-divorce/' );
+	$content     = preg_replace(
+		'#href=(["\'])([^"\']*start-your-divorce/?[^"\']*)\1#',
+		'href=$1' . esc_attr( $correct_url ) . '$1',
+		$content
+	);
+	return $content;
+}
+
+add_filter( 'the_content', 'bluehost_blueprint_fix_start_divorce_url', 20 );
+add_filter( 'render_block', function ( $block_content, $block ) {
+	if ( isset( $block['blockName'] ) && $block['blockName'] === 'core/navigation' ) {
+		return bluehost_blueprint_fix_start_divorce_url( $block_content );
+	}
+	return $block_content;
+}, 20, 2 );
+
+/**
  * Style and position the GTranslate widget in the header.
  */
 add_action( 'wp_enqueue_scripts', function () {

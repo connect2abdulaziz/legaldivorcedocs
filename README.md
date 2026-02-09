@@ -121,7 +121,7 @@ FLUSH PRIVILEGES;
 ```powershell
 & "C:\xampp\mysql\bin\mysql.exe" -u wpuser -p legaldivorcedocs_local < legaldivorcedocs_for_partner.sql
 ```
-- Then update site URLs (see step 3 in "Database Setup" below; use `http://localhost/legaldivorcedocs` as YOUR_LOCAL_DOMAIN if using the folder in htdocs).
+- Then update site URLs (see step 3 in "Database Setup" below; use `http://legaldivorcedocs.local/legaldivorcedocs` as YOUR_LOCAL_DOMAIN if using the folder in htdocs).
 
 ### 4. Create wp-config.php
 - `wp-config.php` is not in the repo (it’s in .gitignore). Create it from `wp-config-sample.php` or use the backup:
@@ -138,11 +138,11 @@ $_SERVER['HTTPS'] = 'off';
 
 ### 5. Open the site in the browser
 - If the project is in `C:\xampp\htdocs\legaldivorcedocs`:
-  - **http://localhost/legaldivorcedocs**
+  - **http://legaldivorcedocs.local/legaldivorcedocs**
 - If you get “Error establishing a database connection”, check database name, user, password and that MySQL is running.
 
 ### 6. If you didn’t import a database
-- Visit **http://localhost/legaldivorcedocs** and complete the WordPress installation wizard (use the same database and table prefix `FVp_`).
+- Visit **http://legaldivorcedocs.local/legaldivorcedocs** and complete the WordPress installation wizard (use the same database and table prefix `FVp_`).
 
 ---
 
